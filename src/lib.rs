@@ -25,7 +25,7 @@ impl Hash for NodeID {
 }
 
 // Frame read by the router to determination destination.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GenCamFrame {
     pub source: NodeID,
     pub destination: NodeID,
@@ -34,7 +34,7 @@ pub struct GenCamFrame {
 }
 
 // Comms type
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum FrameType {
     Id,
     Comms,
@@ -83,7 +83,7 @@ impl GenCamFrame {
 }
 
 // Packet
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GenCamPacket {
     pub packet_type: PacketType,
     pub packet_id: u32,
@@ -94,7 +94,7 @@ pub struct GenCamPacket {
 }
 
 // Comms type
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum PacketType {
     Ack,
     NAck,
