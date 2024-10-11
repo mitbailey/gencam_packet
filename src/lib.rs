@@ -84,13 +84,13 @@ impl GenCamFrame {
 
 // Packet
 #[derive(Serialize, Deserialize, Debug)]
-struct GenCamPacket {
-    packet_type: PacketType,
-    packet_id: u32,
-    x_dim: u32,
-    y_dim: u32,
-    data: Option<Vec<u8>>,
-    crc: u32,
+pub struct GenCamPacket {
+    pub packet_type: PacketType,
+    pub packet_id: u32,
+    pub x_dim: u32,
+    pub y_dim: u32,
+    pub data: Option<Vec<u8>>,
+    pub crc: u32,
 }
 
 // Comms type
@@ -101,4 +101,10 @@ pub enum PacketType {
     ImgReq,
     Image,
     Data,
+}
+
+impl PartialEq for PacketType {
+    fn eq(&self, other: &Self) -> bool {
+        matches!((self, other), (PacketType::Ack, PacketType::Ack) | (PacketType::NAck, PacketType::NAck) | (PacketType::ImgReq, PacketType::ImgReq) | (PacketType::Image, PacketType::Image) | (PacketType::Data, PacketType::Data))
+    }
 }
