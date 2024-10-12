@@ -8,15 +8,7 @@ use crc::CRC_32_CKSUM;
 pub struct GenCamFrame {
     pub source: u32,
     pub destination: u32,
-    pub frame_type: FrameType,
     pub packet: GenCamPacket,
-}
-
-// Comms type
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum FrameType {
-    Id,
-    Comms,
 }
 
 impl GenCamFrame {
@@ -32,7 +24,6 @@ impl GenCamFrame {
         GenCamFrame {
             source,
             destination,
-            frame_type: FrameType::Comms,
             packet: GenCamPacket {
                 packet_type,
                 packet_id,
@@ -70,7 +61,7 @@ pub enum PacketType {
     ImgReq,
     Image,
     Data,
-    Id, // Router assignment of sink ID.
+    Id, // Router Id assignment.
     ProdReq, // Request for router to send list of producers to subscribe to.
     Prods, // List of producers a client can subscribe to.
     Sub, // Subscribe to one producer.
