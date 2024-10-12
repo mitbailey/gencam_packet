@@ -3,32 +3,11 @@ use std::hash::Hash;
 use serde::{Serialize, Deserialize};
 use crc::CRC_32_CKSUM;
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct NodeID {
-    pub id: u32,
-    pub name: String,
-}
-
-impl PartialEq for NodeID {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.name == other.name
-    }
-}
-
-impl Eq for NodeID {}
-
-impl Hash for NodeID {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-        self.name.hash(state);
-    }
-}
-
 // Frame read by the router to determination destination.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GenCamFrame {
-    pub source: NodeID,
-    pub destination: NodeID,
+    pub source: u32,
+    pub destination: u32,
     pub frame_type: FrameType,
     pub packet: GenCamPacket,
 }
@@ -41,7 +20,7 @@ pub enum FrameType {
 }
 
 impl GenCamFrame {
-    pub fn new(source: NodeID, destination: NodeID, packet_type: PacketType, packet_id: u32, x_dim: u32, y_dim: u32, 
+    pub fn new(source: u32, destination: u32, packet_type: PacketType, packet_id: u32, x_dim: u32, y_dim: u32, 
         data: Option<Vec<u8>>) -> Self {
 
         let mut crc = 0;
@@ -65,20 +44,9 @@ impl GenCamFrame {
         }
     }
 
-    pub fn identifier(source: NodeID, destination: NodeID) -> Self {
-        GenCamFrame {
-            source,
-            destination,
-            frame_type: FrameType::Id,
-            packet: GenCamPacket {
-                packet_type: PacketType::Ack,
-                packet_id: 0,
-                x_dim: 0,
-                y_dim: 0,
-                data: None,
-                crc: 0,
-            },
-        }
+    // Change name to deserialize?
+    pub fn from_bytes(bytes: Vec<u8>) -> std::result::Result<Self, serde_json::Error> {
+        serde_json::from_slice(&bytes)
     }
 }
 
@@ -87,6 +55,7 @@ impl GenCamFrame {
 pub struct GenCamPacket {
     pub packet_type: PacketType,
     pub packet_id: u32,
+    // TODO: x_dim and y_dim probably should not be hardcoded.
     pub x_dim: u32,
     pub y_dim: u32,
     pub data: Option<Vec<u8>>,
@@ -101,10 +70,14 @@ pub enum PacketType {
     ImgReq,
     Image,
     Data,
+    Id, // Router assignment of sink ID.
+    ProdReq, // Request for router to send list of producers to subscribe to.
+    Prods, // List of producers a client can subscribe to.
+    Sub, // Subscribe to one producer.
 }
 
 impl PartialEq for PacketType {
     fn eq(&self, other: &Self) -> bool {
-        matches!((self, other), (PacketType::Ack, PacketType::Ack) | (PacketType::NAck, PacketType::NAck) | (PacketType::ImgReq, PacketType::ImgReq) | (PacketType::Image, PacketType::Image) | (PacketType::Data, PacketType::Data))
+        matches!((self, other), (PacketType::Ack, PacketType::Ack) | (PacketType::NAck, PacketType::NAck) | (PacketType::ImgReq, PacketType::ImgReq) | (PacketType::Image, PacketType::Image) | (PacketType::Data, PacketType::Data) | (PacketType::Id, PacketType::Id) | (PacketType::ProdReq, PacketType::ProdReq) | (PacketType::Prods, PacketType::Prods) | (PacketType::Sub, PacketType::Sub))
     }
 }
