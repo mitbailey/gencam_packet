@@ -3,72 +3,69 @@ use std::hash::Hash;
 use serde::{Serialize, Deserialize};
 use crc::CRC_32_CKSUM;
 
-// Frame read by the router to determination destination.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GenCamFrame {
-    pub source: u32,
-    pub destination: u32,
-    pub packet: GenCamPacket,
+pub struct GenCamHeader {
+    source: u32,
+    destination: u32,
 }
 
-impl GenCamFrame {
-    pub fn new(source: u32, destination: u32, packet_type: PacketType, packet_id: u32, x_dim: u32, y_dim: u32, 
-        data: Option<Vec<u8>>) -> Self {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GenCamFooter {
+    crc: u32,
+}
 
-        let mut crc = 0;
-    
-        if let Some(data) = data.clone() {
-            crc = crc::Crc::<u32>::new(&CRC_32_CKSUM).checksum(&data.clone());
-        }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum GenCamPacket {
+    Ack{header: GenCamHeader, footer: GenCamFooter},
+    NAck{header: GenCamHeader, footer: GenCamFooter},
+    Image{header: GenCamHeader, data: Vec<u8>, width: u32, height: u32, footer: GenCamFooter},
+    ImageRequest{header: GenCamHeader, footer: GenCamFooter},
+    ProducersRequest{header: GenCamHeader, footer: GenCamFooter},
+    Producers{header: GenCamHeader, producers: Vec<u32>, footer: GenCamFooter},
+    Subscription{header: GenCamHeader, producer: u32, footer: GenCamFooter},
+}
 
-        GenCamFrame {
-            source,
-            destination,
-            packet: GenCamPacket {
-                packet_type,
-                packet_id,
-                x_dim,
-                y_dim,
-                data,
-                crc,
-            },
-        }
+impl GenCamPacket {
+    pub fn ack() -> Self {
+        GenCamPacket::Ack{header: GenCamHeader{source: 0, destination: 0}, footer: GenCamFooter{crc: 0}}
     }
 
-    // Change name to deserialize?
+    pub fn nack() -> Self {
+        GenCamPacket::NAck{header: GenCamHeader{source: 0, destination: 0}, footer: GenCamFooter{crc: 0}}
+    }
+
+    pub fn image(data: Vec<u8>, width: u32, height: u32) -> Self {
+        GenCamPacket::Image{header: GenCamHeader{source: 0, destination: 0}, data, width, height, footer: GenCamFooter{crc: 0}}
+    }
+
+    pub fn image_request() -> Self {
+        GenCamPacket::ImageRequest{header: GenCamHeader{source: 0, destination: 0}, footer: GenCamFooter{crc: 0}}
+    }
+
+    pub fn producers_request() -> Self {
+        GenCamPacket::ProducersRequest{header: GenCamHeader{source: 0, destination: 0}, footer: GenCamFooter{crc: 0}}
+    }
+
+    pub fn producers(producers: Vec<u32>) -> Self {
+        GenCamPacket::Producers{header: GenCamHeader{source: 0, destination: 0}, producers, footer: GenCamFooter{crc: 0}}
+    }
+
+    pub fn subscription(producer: u32) -> Self {
+        GenCamPacket::Subscription{header: GenCamHeader{source: 0, destination: 0}, producer, footer: GenCamFooter{crc: 0}}
+    }
+
     pub fn from_bytes(bytes: Vec<u8>) -> std::result::Result<Self, serde_json::Error> {
         serde_json::from_slice(&bytes)
     }
-}
 
-// Packet
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct GenCamPacket {
-    pub packet_type: PacketType,
-    pub packet_id: u32,
-    // TODO: x_dim and y_dim probably should not be hardcoded.
-    pub x_dim: u32,
-    pub y_dim: u32,
-    pub data: Option<Vec<u8>>,
-    pub crc: u32,
-}
+    pub fn to_bytes(&self) -> std::result::Result<Vec<u8>, serde_json::Error> {
+        serde_json::to_vec(&self)
+    }
 
-// Comms type
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub enum PacketType {
-    Ack,
-    NAck,
-    ImgReq,
-    Image,
-    Data,
-    Id, // Router Id assignment.
-    ProdReq, // Request for router to send list of producers to subscribe to.
-    Prods, // List of producers a client can subscribe to.
-    Sub, // Subscribe to one producer.
-}
-
-impl PartialEq for PacketType {
-    fn eq(&self, other: &Self) -> bool {
-        matches!((self, other), (PacketType::Ack, PacketType::Ack) | (PacketType::NAck, PacketType::NAck) | (PacketType::ImgReq, PacketType::ImgReq) | (PacketType::Image, PacketType::Image) | (PacketType::Data, PacketType::Data) | (PacketType::Id, PacketType::Id) | (PacketType::ProdReq, PacketType::ProdReq) | (PacketType::Prods, PacketType::Prods) | (PacketType::Sub, PacketType::Sub))
+    pub fn get_data(&self) -> Option<Vec<u8>> {
+        match self {
+            GenCamPacket::Image{data, ..} => Some(data.clone()),
+            _ => None,
+        }
     }
 }
